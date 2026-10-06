@@ -1,0 +1,22 @@
+.DS_Store
+
+# Local database files and temporary SQL artifacts
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.duckdb
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.dump
+*.backup
+*.bak
+
+# Local query output, logs, and environment files
+*.log
+*.tmp
+.env
+.env.*
