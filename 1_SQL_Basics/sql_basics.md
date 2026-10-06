@@ -558,12 +558,28 @@ LIMIT 5;
 
 In the SQL script you created for the exercises, you can write your queries, and run them by clicking on the little yellow arrow (or using control + enter).
 
+> **Lösungen:** Die Tabellen im Schema `introduction` sind `record` (Fälle pro Datum, Geschlecht und Altersgruppe), `gender` (1 = male, 2 = female) und `age_bucket` (1 = 0:5 ... 4 = 20:29, 5 = 30:39, 6 = 40:49 ... 11 = 90). Alle Abfragen nutzen den Präfix `introduction.` und sind gegen die Kurs-Datenbank getestet (06.10.2026).
+
 ### Exercise 1
 
 Explore all tables in the schema **introduction** and use SQL to:
 
 - Get all cases for women
 - Get all cases for men between 20 and 50
+
+```sql
+-- Frauen (id_gender = 2)
+SELECT *
+FROM introduction.record
+WHERE id_gender = 2;
+
+-- Männer zwischen 20 und 50 (Altersgruppen 20:29, 30:39, 40:49)
+SELECT *
+FROM introduction.record
+WHERE id_gender = 1
+  AND id_age_bucket BETWEEN 4 AND 6;
+```
+Ergebnis: 539 Zeilen für Frauen, 147 Zeilen für Männer zwischen 20 und 50.
 
 ### Exercise 2
 
@@ -573,23 +589,103 @@ Let us now get some more information by joining tables together. Use SQL to:
 + Get all cases for women (including gender names AND age_bucket names)
 + Get all cases for men between 20 AND 50 including gender names AND age_bucket names
 
+```sql
+-- Frauen mit Geschlechtsnamen
+SELECT r.record_date, g.name AS gender, r.id_age_bucket, r.cases
+FROM introduction.record AS r
+INNER JOIN introduction.gender AS g
+    ON r.id_gender = g.id
+WHERE g.name = 'female';
+
+-- Frauen mit Geschlechts- und Altersgruppennamen
+SELECT r.record_date, g.name AS gender, a.range AS age_group, r.cases
+FROM introduction.record AS r
+INNER JOIN introduction.gender AS g
+    ON r.id_gender = g.id
+INNER JOIN introduction.age_bucket AS a
+    ON r.id_age_bucket = a.id
+WHERE g.name = 'female';
+
+-- Männer zwischen 20 und 50 mit beiden Namen
+SELECT r.record_date, g.name AS gender, a.range AS age_group, r.cases
+FROM introduction.record AS r
+INNER JOIN introduction.gender AS g
+    ON r.id_gender = g.id
+INNER JOIN introduction.age_bucket AS a
+    ON r.id_age_bucket = a.id
+WHERE g.name = 'male'
+  AND a.range IN ('20:29', '30:39', '40:49');
+```
+
 ### Exercise 3
 
 - Get all cases for women ORDER them BY age_GROUPs ASCending
 - ... AND also BY date (extra)
 - Get all cases for men between 20 AND 50, ORDER them BY record_date DESCending
 
+```sql
+-- Frauen nach Altersgruppe aufsteigend, dann nach Datum
+SELECT r.record_date, a.range AS age_group, r.cases
+FROM introduction.record AS r
+INNER JOIN introduction.age_bucket AS a
+    ON r.id_age_bucket = a.id
+WHERE r.id_gender = 2
+ORDER BY r.id_age_bucket ASC, r.record_date ASC;
+
+-- Männer zwischen 20 und 50, neueste Daten zuerst
+SELECT r.record_date, a.range AS age_group, r.cases
+FROM introduction.record AS r
+INNER JOIN introduction.age_bucket AS a
+    ON r.id_age_bucket = a.id
+WHERE r.id_gender = 1
+  AND r.id_age_bucket BETWEEN 4 AND 6
+ORDER BY r.record_date DESC;
+```
+Hinweis: Nach `id_age_bucket` sortieren, nicht nach dem Text `range`. Als Text stünde "6:14" hinter "50:59", weil Text Zeichen für Zeichen verglichen wird.
+
 ### Exercise 4
 
 - Get average number of cases for women
 - Get maximum number of cases for men
 
+```sql
+SELECT AVG(cases) AS average_cases_women
+FROM introduction.record
+WHERE id_gender = 2;
+
+SELECT MAX(cases) AS max_cases_men
+FROM introduction.record
+WHERE id_gender = 1;
+```
+Ergebnis: Durchschnitt Frauen **2.567,5**, Maximum Männer **8.431**.
+
 ### Exercise 5
 
 - Get sum of cases per gender per age GROUP
 
+```sql
+SELECT g.name AS gender, a.range AS age_group, SUM(r.cases) AS total_cases
+FROM introduction.record AS r
+INNER JOIN introduction.gender AS g
+    ON r.id_gender = g.id
+INNER JOIN introduction.age_bucket AS a
+    ON r.id_age_bucket = a.id
+GROUP BY g.name, a.id, a.range
+ORDER BY g.name, a.id;
+```
+Ergebnis: 22 Zeilen (2 Geschlechter × 11 Altersgruppen). Die meisten Fälle haben jeweils die 20- bis 29-Jährigen (female 263.291, male 260.253).
+
 ### Exercise 6
 - Get all the dates with more then 80,000 cases.
+
+```sql
+SELECT record_date, SUM(cases) AS total_cases
+FROM introduction.record
+GROUP BY record_date
+HAVING SUM(cases) > 80000
+ORDER BY record_date;
+```
+Ergebnis: 5 Tage, vom 16.08.2021 (81.452) bis 13.09.2021 (87.908). `HAVING` statt `WHERE`, weil die Bedingung auf der Summe pro Tag liegt.
 
 
 ## References & Further Reading
